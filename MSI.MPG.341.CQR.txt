@@ -1,0 +1,56 @@
+MSI MPG 341CQR
+
+lsusb | grep -i MSI
+
+lsusb -d 1462:3fa4
+Bus 001 Device 021: ID 1462:3fa4 Micro Star International MSI Monitor MPG 341CQR QD-OLED X36
+
+# Βρες τα hidraw devices
+for dev in /sys/class/hidraw/*/device
+    set id (cat "$dev/uevent" 2>/dev/null | grep HID_ID)
+    set name (cat "$dev/uevent" 2>/dev/null | grep HID_NAME)
+    echo (dirname $dev | xargs basename)": $id  $name"
+end
+
+hidraw0: HID_ID=0003:00000B05:00001AA6  HID_NAME=AsusTek Computer Inc. AURA LED Controller
+hidraw1: HID_ID=0003:00001462:00003FA4  HID_NAME=MSI MSI Monitor MPG 341CQR QD-OLED X36
+hidraw4: HID_ID=0003:00003434:000001A1  HID_NAME=Keychron Keychron Q10
+hidraw5: HID_ID=0003:00003434:000001A1  HID_NAME=Keychron Keychron Q10
+hidraw6: HID_ID=0003:00003434:000001A1  HID_NAME=Keychron Keychron Q10
+hidraw7: HID_ID=0003:00001E7D:0000AFCA  HID_NAME=ROCCAT ROCCAT Kone Air
+hidraw8: HID_ID=0003:00001E7D:0000AFCA  HID_NAME=ROCCAT ROCCAT Kone Air
+hidraw9: HID_ID=0003:00001E7D:0000AFCA  HID_NAME=ROCCAT ROCCAT Kone Air
+hidraw10: HID_ID=0003:00001E7D:0000AFCA  HID_NAME=ROCCAT ROCCAT Kone Air
+hidraw11: HID_ID=0003:00000B95:00006801  HID_NAME=ASIX Electronics AX68004
+hidraw12: HID_ID=0003:00000B95:00006801  HID_NAME=ASIX Electronics AX68004
+hidraw13: HID_ID=0003:000031B2:00000011  HID_NAME=KTMicro USB_Audio_Device
+hidraw15: HID_ID=0003:0000041E:00003265  HID_NAME=Creative Technology Ltd Sound Blaster X5
+
+sudo modprobe usbmon
+ls /sys/kernel/debug/usb/usbmon/
+
+sudo usermod -a -G wireshark $USER
+newgrp wireshark
+wireshark &
+
+Επίλεξε interface usbmon1
+Στο filter bar βάλε:
+usb.idVendor == 0x1462
+Πάτα Start (μπλε κουμπί)
+
+# 1. Εγκατάσταση
+sudo pacman -S python-hid   # ή: pip install --user hid
+
+# 2. udev rule
+sudo cp 90-msi-monitor.rules /etc/udev/rules.d/
+sudo udevadm control --reload && sudo udevadm trigger
+sudo usermod -aG plugdev $USER
+# logout/login
+
+# 3. Εγκατάσταση tool
+pip install --user -e .
+
+# 4. Δοκιμή
+msi-monitor-ctl input dp
+msi-monitor-ctl input hdmi1
+msi-monitor-ctl -v input dp   # με debug output

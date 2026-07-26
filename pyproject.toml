@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "msi-monitor-ctl"
+version = "0.1.0"
+description = "Linux control tool for MSI MPG monitors (input switching, profiles, and more)"
+readme = "README.md"
+license = { text = "GPL-3.0-or-later" }
+requires-python = ">=3.9"
+dependencies = [
+    "hid>=1.0.6",       # hidapi Python bindings
+]
+
+[project.scripts]
+msi-monitor-ctl = "msi_monitor.cli:main"
+
+[project.optional-dependencies]
+shortcut = [
+    "pynput>=1.7",      # Global keyboard shortcuts (optional)
+]
+tray = [
+    "pystray>=0.19",    # System tray icon (optional)
+    "Pillow>=10.0",
+]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov",
+]
+
+[project.urls]
+Repository = "https://github.com/YOUR_USERNAME/msi-monitor-ctl"
+Issues     = "https://github.com/YOUR_USERNAME/msi-monitor-ctl/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["msi_monitor*"]

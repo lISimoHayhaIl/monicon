@@ -1,0 +1,15 @@
+# MSI Monitor MPG 341CQR QD-OLED X36 — HID USB control interface
+# Allows members of the 'plugdev' group to access the device without sudo.
+#
+# Install:
+#   sudo cp 90-msi-monitor.rules /etc/udev/rules.d/
+#   sudo udevadm control --reload
+#   sudo udevadm trigger
+#   sudo usermod -aG plugdev $USER   # then log out and back in
+
+SUBSYSTEM=="hidraw", \
+  ATTRS{idVendor}=="1462", \
+  ATTRS{idProduct}=="3fa4", \
+  MODE="0660", \
+  GROUP="plugdev", \
+  TAG+="uaccess"
