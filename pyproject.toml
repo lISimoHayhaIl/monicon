@@ -1,38 +1,56 @@
 [build-system]
 requires = ["setuptools>=68", "wheel"]
-build-backend = "setuptools.backends.legacy:build"
+build-backend = "setuptools.build_meta"
 
 [project]
-name = "msi-monitor-ctl"
-version = "0.1.0"
-description = "Linux control tool for MSI MPG monitors (input switching, profiles, and more)"
+name = "monicon"
+version = "0.2.0"
+description = "Modern Linux system tray application for controlling MSI gaming monitors with global keybindings"
 readme = "README.md"
 license = { text = "GPL-3.0-or-later" }
 requires-python = ">=3.9"
-dependencies = [
-    "hid>=1.0.6",       # hidapi Python bindings
+authors = [
+    { name = "Monicon Contributors" }
 ]
 
-[project.scripts]
-msi-monitor-ctl = "msi_monitor.cli:main"
+dependencies = [
+    "hid>=1.0.6",              # hidapi Python bindings for HID communication
+    "pynput>=1.7",             # Global keyboard shortcut capture (cross-DE)
+    "PyQt6>=6.0",              # System tray GUI (cross-platform, cross-DE)
+]
 
 [project.optional-dependencies]
-shortcut = [
-    "pynput>=1.7",      # Global keyboard shortcuts (optional)
-]
-tray = [
-    "pystray>=0.19",    # System tray icon (optional)
-    "Pillow>=10.0",
-]
 dev = [
     "pytest>=7.0",
-    "pytest-cov",
+    "pytest-cov>=4.0",
+    "black>=22.0",
+    "ruff>=0.1",
+    "mypy>=1.0",
 ]
 
 [project.urls]
-Repository = "https://github.com/YOUR_USERNAME/msi-monitor-ctl"
-Issues     = "https://github.com/YOUR_USERNAME/msi-monitor-ctl/issues"
+Repository = "https://github.com/monicon-dev/monicon"
+Issues = "https://github.com/monicon-dev/monicon/issues"
+
+[project.scripts]
+monicon = "msi_monitor.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["msi_monitor*"]
+
+[tool.black]
+line-length = 100
+target-version = ['py39', 'py310', 'py311']
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+select = ["E", "F", "W", "I"]
+ignore = ["E501"]  # Line too long (handled by black)
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false

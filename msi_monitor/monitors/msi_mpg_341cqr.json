@@ -1,0 +1,61 @@
+{
+  "id": "msi_mpg_341cqr",
+  "name": "MSI MPG 341CQR QD-OLED X36",
+  "vendor_id": "0x1462",
+  "product_id": "0x3fa4",
+  "description": "Ultra-wide QD-OLED gaming monitor, 34-inch (3440x1440)",
+  "inputs": [
+    {
+      "id": "hdmi1",
+      "name": "HDMI 1",
+      "description": "HDMI input 1"
+    },
+    {
+      "id": "hdmi2",
+      "name": "HDMI 2",
+      "description": "HDMI input 2"
+    },
+    {
+      "id": "dp",
+      "name": "DisplayPort",
+      "description": "DisplayPort input"
+    },
+    {
+      "id": "usb_c",
+      "name": "USB-C",
+      "description": "USB-C input with power delivery"
+    }
+  ],
+  "profiles": [
+    {
+      "id": "eco",
+      "name": "Eco",
+      "description": "Power-saving profile"
+    },
+    {
+      "id": "fps",
+      "name": "FPS",
+      "description": "High-performance gaming"
+    },
+    {
+      "id": "racing",
+      "name": "Racing",
+      "description": "Racing game optimization"
+    },
+    {
+      "id": "rpg",
+      "name": "RPG",
+      "description": "RPG/story game optimization"
+    },
+    {
+      "id": "srgb",
+      "name": "sRGB",
+      "description": "Color-accurate sRGB mode"
+    },
+    {
+      "id": "movie",
+      "name": "Movie",
+      "description": "Movie/entertainment mode"
+    }
+  ]
+}
