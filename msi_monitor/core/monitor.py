@@ -107,3 +107,15 @@ class IMonitor(ABC):
     def supports_feature(self, feature: str) -> bool:
         """Check if monitor supports a feature (e.g., "profiles", "input_switching")."""
         pass
+
+    # ------------------------------------------------------------------
+    # Context manager support (shared by all implementations).
+    # Lets callers write `with monitor: ...` instead of manual open()/close(),
+    # guaranteeing the HID handle is released even if an exception occurs.
+    # ------------------------------------------------------------------
+    def __enter__(self) -> "IMonitor":
+        self.open()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        self.close()

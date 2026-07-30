@@ -5,7 +5,6 @@ Follows the Dependency Inversion Principle by providing abstract interfaces
 for device communication, allowing different monitor implementations.
 """
 
-import time
 import logging
 from abc import ABC, abstractmethod
 from typing import Optional
@@ -115,7 +114,13 @@ class HIDAPIDevice(IHIDDevice):
         self._dev = None
 
     def open(self) -> None:
-        """Open the HID device. Raises HIDDeviceNotFoundError if not found."""
+        """Open the HID device. Raises HIDDeviceNotFoundError if not found.
+
+        Uses the `hid` (pyhidapi) package's `hid.Device(path=...)` constructor,
+        which opens the device immediately (there is no separate open_path()
+        call, unlike the older cython hidapi binding this code was originally
+        written against).
+        """
         devices = self._hid.enumerate(self.vendor_id, self.product_id)
         if not devices:
             raise HIDDeviceNotFoundError(
@@ -129,12 +134,12 @@ class HIDAPIDevice(IHIDDevice):
             devices[0]
         )
 
-        self._dev = self._hid.device()
         try:
-            self._dev.open_path(target['path'])
-            self._dev.set_nonblocking(True)
+            self._dev = self._hid.Device(path=target['path'])
+            self._dev.nonblocking = True
             logger.info("Opened HID device: %s", target['path'])
         except Exception as e:
+            self._dev = None
             raise HIDDevicePermissionError(
                 f"Failed to open device: {e}. Check udev rules or run with sudo."
             )
@@ -154,27 +159,31 @@ class HIDAPIDevice(IHIDDevice):
         return self._dev is not None
 
     def write(self, data: bytes) -> int:
-        """Write data to HID device."""
+        """Write data to HID device.
+
+        pyhidapi's Device.write() expects a bytes-like buffer directly
+        (not a list of ints, unlike the older cython hidapi binding).
+        """
         if not self._dev:
             raise HIDDeviceError("Device not open")
         try:
-            return self._dev.write(list(data))
+            return self._dev.write(bytes(data))
         except Exception as e:
             raise HIDDeviceError(f"Write failed: {e}")
 
     def read(self, length: int, timeout_ms: int = 200) -> Optional[bytes]:
-        """Read data from HID device with timeout."""
+        """Read data from HID device with timeout.
+
+        pyhidapi's Device.read() accepts a native timeout (ms) argument
+        that performs a blocking read with timeout at the C level, which is
+        both simpler and more efficient than a manual poll loop.
+        """
         if not self._dev:
             raise HIDDeviceError("Device not open")
 
-        deadline = time.monotonic() + timeout_ms / 1000
-        while time.monotonic() < deadline:
-            try:
-                data = self._dev.read(length)
-                if data:
-                    return bytes(data)
-            except Exception as e:
-                logger.debug("Read error: %s", e)
-            time.sleep(0.01)
-
-        return None
+        try:
+            data = self._dev.read(length, timeout=timeout_ms)
+            return bytes(data) if data else None
+        except Exception as e:
+            logger.debug("Read error: %s", e)
+            return None

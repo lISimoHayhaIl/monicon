@@ -37,7 +37,9 @@ class MoniconicoTrayWindow:
             )
             from PyQt6.QtGui import QIcon, QAction, QColor
             from PyQt6.QtCore import Qt, pyqtSignal, QObject, QSize
-            from PyQt6.QtSvg import QSvgWidget
+            # Note: in PyQt6 (unlike PyQt5), QSvgWidget lives in QtSvgWidgets,
+            # not QtSvg. Import kept for future SVG tray-icon rendering support.
+            from PyQt6.QtSvgWidgets import QSvgWidget
         except ImportError as e:
             raise ImportError(f"PyQt6 not installed: {e}. Run: pip install PyQt6")
 
