@@ -1,0 +1,63 @@
+# Maintainer: Your Name <your.email@example.com>
+# Contributor: Monicon Project <https://github.com/monicon-dev/monicon>
+
+pkgname=monicon
+pkgver=0.2.0
+pkgrel=1
+pkgdesc="Modern system tray application for controlling MSI gaming monitors on Linux"
+arch=('x86_64' 'i686')
+url="https://github.com/monicon-dev/monicon"
+license=('GPL3')
+depends=(
+    'python>=3.9'
+    'python-pynput>=1.7'
+    'python-pyqt6>=6.0'
+    'hidapi'
+)
+makedepends=(
+    'python-setuptools'
+    'python-wheel'
+    'python-build'
+    'python-installer'
+)
+optdepends=(
+    'python-pyyaml: For YAML monitor definitions'
+)
+provides=('monicon')
+conflicts=('msi-monitor-ctl')
+
+source=("git+https://github.com/monicon-dev/monicon.git#branch=feat/refactor-solid-tray-gui")
+sha256sums=('SKIP')
+
+pkgver() {
+    cd "${pkgname}"
+    printf "%s" "$(python -c 'import msi_monitor; print(msi_monitor.__version__)')"
+}
+
+build() {
+    cd "${pkgname}"
+    python -m build --wheel --no-isolation
+}
+
+package() {
+    cd "${pkgname}"
+    python -m installer --destdir="${pkgdir}" dist/*.whl
+    
+    # Install udev rules
+    install -Dm644 "90-msi-monitor.rules" \
+        "${pkgdir}/etc/udev/rules.d/90-msi-monitor.rules"
+    
+    # Install desktop entry for GUI
+    mkdir -p "${pkgdir}/usr/share/applications"
+    cat > "${pkgdir}/usr/share/applications/monicon.desktop" << 'EOF'
+[Desktop Entry]
+Type=Application
+Name=Monicon
+Comment=Control MSI gaming monitors
+Exec=monicon gui
+Icon=monicon
+Categories=Utility;Hardware;
+Terminal=false
+StartupNotify=false
+EOF
+}

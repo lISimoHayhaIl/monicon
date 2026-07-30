@@ -1,0 +1,34 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+
+export PYBUILD_NAME=monicon
+
+%:
+	dh $@ --with python3 --build-system=pybuild
+
+override_dh_auto_build:
+	python3 -m build --wheel --no-isolation
+
+override_dh_auto_install:
+	python3 -m installer --destdir=debian/monicon dist/*.whl
+	
+	# Install udev rules
+	install -D -m 0644 90-msi-monitor.rules \
+		debian/monicon/etc/udev/rules.d/90-msi-monitor.rules
+	
+	# Install desktop entry
+	mkdir -p debian/monicon/usr/share/applications
+	cat > debian/monicon/usr/share/applications/monicon.desktop << 'EOF'
+[Desktop Entry]
+Type=Application
+Name=Monicon
+Comment=Control MSI gaming monitors
+Exec=monicon gui
+Icon=monicon
+Categories=Utility;Hardware;
+Terminal=false
+StartupNotify=false
+EOF
+
+override_dh_auto_test:
+	# Skip tests for now - can be added later

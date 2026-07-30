@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Monicon
+Comment=Control MSI gaming monitors from Linux
+Comment[de]=Kontrollieren Sie MSI-Gaming-Monitore unter Linux
+Comment[fr]=Contrôler les moniteurs de jeu MSI à partir de Linux
+Comment[es]=Controlar monitores de juegos MSI desde Linux
+Exec=monicon gui
+Icon=monicon
+Categories=Utility;Hardware;
+Terminal=false
+StartupNotify=false
+Keywords=monitor;msi;gaming;hardware;control;

@@ -1,0 +1,19 @@
+monicon (0.2.0-1) unstable; urgency=medium
+
+  * Major refactor with SOLID principles
+  * New system tray GUI based on PyQt6
+  * Global keyboard shortcut support
+  * Pluggable monitor definitions via JSON/YAML
+  * Configuration management using XDG directories
+  * Cross-desktop environment compatibility
+  * Improved architecture for future monitor support
+
+ -- Monicon Contributors <monicon@example.com>  Thu, 30 Jul 2024 00:00:00 +0000
+
+monicon (0.1.0-1) unstable; urgency=medium
+
+  * Initial release
+  * Command-line interface for MSI monitor control
+  * Support for MSI MPG 341CQR QD-OLED X36
+
+ -- Monicon Contributors <monicon@example.com>  Fri, 26 Jul 2024 00:00:00 +0000
