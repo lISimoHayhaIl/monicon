@@ -158,10 +158,20 @@ class MSIMPEG341CQR(IMonitor):
     # ========================================================================
 
     def get_current_input(self) -> Optional[str]:
-        """Query current input source from monitor."""
+        """
+        Get the last input source we successfully commanded the monitor to use.
+
+        IMPORTANT: the monitor's HID protocol has no working "query active
+        input" command — sending 5800140 always returns the identical fixed
+        response regardless of which input is actually selected (verified by
+        querying before/after switching inputs on real hardware). So this
+        cannot read the monitor's true hardware state; it only returns our
+        last known *commanded* value (None if we've never successfully sent a
+        set_input() in this session, or if the input was changed via the
+        physical OSD/remote instead of this app).
+        """
         try:
-            response = self._send_command(self._CMD_QUERY_INPUT)
-            # TODO: Parse response to determine actual input (needs more capture data)
+            self._send_command(self._CMD_QUERY_INPUT)  # diagnostic ping only; response is not decodable
             return self._current_input
         except HIDDeviceError:
             return None

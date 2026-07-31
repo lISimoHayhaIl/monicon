@@ -427,6 +427,13 @@ class MoniconicoTrayWindow:
 
         if self._input_combo is not None:
             self._input_combo.clear()
+            # The MSI protocol cannot report which input is actually active (it has
+            # no working query command — confirmed against real hardware), so when
+            # we don't know (current_input is None) we show an explicit "Unknown"
+            # placeholder instead of silently defaulting to whichever input happens
+            # to be first in the list, which would misinform the user.
+            if self._current_input is None:
+                self._input_combo.addItem("Unknown (select to set)", None)
             for input_id, name in self._inputs.items():
                 self._input_combo.addItem(name, input_id)
             idx = self._input_combo.findData(self._current_input)
@@ -435,6 +442,8 @@ class MoniconicoTrayWindow:
 
         if self._profile_combo is not None:
             self._profile_combo.clear()
+            if self._current_profile is None:
+                self._profile_combo.addItem("Unknown (select to set)", None)
             for profile_id, name in self._profiles.items():
                 self._profile_combo.addItem(name, profile_id)
             idx = self._profile_combo.findData(self._current_profile)
@@ -443,7 +452,8 @@ class MoniconicoTrayWindow:
 
         if self._status_label is not None:
             monitor_name = self._monitors.get(self._current_monitor, "No monitor connected")
-            self._status_label.setText(f"Connected: {monitor_name}")
+            input_name = self._inputs.get(self._current_input, "Unknown") if self._current_input else "Unknown"
+            self._status_label.setText(f"Connected: {monitor_name}  |  Input: {input_name}")
 
     # ------------------------------------------------------------------
     #  Window / tray behaviour
@@ -583,6 +593,34 @@ class MoniconicoTrayWindow:
     def set_on_monitor_selected(self, callback: Callable[[str], None]) -> None:
         """Register callback for monitor model selection."""
         self._on_monitor_selected = callback
+
+    # ------------------------------------------------------------------
+    #  User feedback (errors / confirmations)
+    # ------------------------------------------------------------------
+
+    def show_error(self, title: str, message: str) -> None:
+        """
+        Show a blocking error dialog to the user.
+
+        Previously, failures while switching input/profile (monitor not
+        connected, HID write error, unsupported feature, etc.) were only
+        written to the log file, so the user clicking "Switch" while the
+        monitor was unreachable saw nothing happen at all. Every failure
+        path in the application should call this so the user always gets
+        visible feedback.
+        """
+        QMessageBox = self._QtWidgets['QMessageBox']
+        parent = self._main_window if (self._main_window and self._main_window.isVisible()) else None
+        QMessageBox.warning(parent, title, message)
+
+    def show_info(self, title: str, message: str) -> None:
+        """Show a brief tray notification (falls back to a dialog if tray notifications are unavailable)."""
+        if self._tray_icon is not None:
+            QSystemTrayIcon = self._QtWidgets['QSystemTrayIcon']
+            self._tray_icon.showMessage(title, message, QSystemTrayIcon.MessageIcon.Information, 4000)
+        else:
+            QMessageBox = self._QtWidgets['QMessageBox']
+            QMessageBox.information(self._main_window, title, message)
 
     # ------------------------------------------------------------------
     #  Lifecycle

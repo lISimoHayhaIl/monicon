@@ -79,6 +79,21 @@ class MonitorApplicationGUI:
             # Start shortcut listener
             self.shortcuts.start()
 
+            # If the monitor could not be reached, tell the user visibly instead
+            # of only logging it — previously this was silent, making input/profile
+            # switches appear to "do nothing" with no indication why.
+            if self.monitor is None:
+                self.gui.show_error(
+                    "Monitor not found",
+                    "Monicon could not connect to a monitor and is running in "
+                    "offline mode. Input/profile switching will have no effect "
+                    "until a monitor is detected.\n\n"
+                    "Check that: the monitor is powered on and connected via USB, "
+                    "the correct monitor model is selected in the tray menu, and "
+                    "your user has permission to access the HID device (see "
+                    "90-msi-monitor.rules).",
+                )
+
             self._running = True
             logger.info("Monicon GUI started successfully")
 
@@ -213,30 +228,71 @@ class MonitorApplicationGUI:
         """Switch monitor input source."""
         if not self.monitor:
             logger.warning("Monitor not connected")
+            self.gui.show_error(
+                "Monitor not connected",
+                "Cannot switch input: no monitor is currently connected.\n\n"
+                "Check that the monitor is powered on, the USB cable is plugged "
+                "in, and that your user has permission to access the HID device "
+                "(see the udev rule in the project's 90-msi-monitor.rules).",
+            )
             return
 
         try:
             if self.monitor.set_input(source_id):
                 self.config.set_input(source_id, self._get_input_display_names().get(source_id, source_id))
                 logger.info("Switched input to: %s", source_id)
+                self.gui.update_menu(
+                    inputs=self._get_input_display_names(),
+                    profiles=self._get_profile_display_names(),
+                    current_input=self.config.get().selected_input_id,
+                    current_profile=self.config.get().selected_profile_id,
+                    monitors=self._get_monitor_display_names(),
+                    current_monitor=self.config.get().monitor_model,
+                    shortcuts=self._get_shortcuts_dict(),
+                )
             else:
                 logger.warning("Failed to switch input")
+                self.gui.show_error(
+                    "Input switch failed",
+                    f"The monitor rejected the request to switch to '{source_id}'. "
+                    "Check the connection and try again.",
+                )
         except Exception as e:
             logger.error("Error switching input: %s", e)
+            self.gui.show_error("Input switch failed", f"An error occurred while switching input:\n{e}")
 
     def _cycle_profile(self) -> None:
         """Cycle to next profile."""
         if not self.monitor:
             logger.warning("Monitor not connected")
+            self.gui.show_error(
+                "Monitor not connected",
+                "Cannot cycle profile: no monitor is currently connected.",
+            )
             return
 
         try:
             if self.monitor.next_profile():
                 logger.info("Cycled to next profile")
+                new_profile_id = self.monitor.get_current_profile()
+                if new_profile_id:
+                    display_name = self._get_profile_display_names().get(new_profile_id, new_profile_id)
+                    self.config.set_profile(new_profile_id, display_name)
+                    self.gui.update_menu(
+                        inputs=self._get_input_display_names(),
+                        profiles=self._get_profile_display_names(),
+                        current_input=self.config.get().selected_input_id,
+                        current_profile=self.config.get().selected_profile_id,
+                        monitors=self._get_monitor_display_names(),
+                        current_monitor=self.config.get().monitor_model,
+                        shortcuts=self._get_shortcuts_dict(),
+                    )
             else:
                 logger.warning("Failed to cycle profile")
+                self.gui.show_error("Profile cycle failed", "The monitor rejected the request to cycle profiles.")
         except Exception as e:
             logger.error("Error cycling profile: %s", e)
+            self.gui.show_error("Profile cycle failed", f"An error occurred while cycling profile:\n{e}")
 
     def _on_input_changed(self, input_id: str) -> None:
         """Callback when user selects input from tray menu."""
@@ -248,6 +304,12 @@ class MonitorApplicationGUI:
         logger.debug("User selected profile: %s", profile_id)
         if not self.monitor:
             logger.warning("Monitor not connected")
+            self.gui.show_error(
+                "Monitor not connected",
+                "Cannot switch profile: no monitor is currently connected.\n\n"
+                "Check that the monitor is powered on, the USB cable is plugged "
+                "in, and that your user has permission to access the HID device.",
+            )
             return
 
         try:
@@ -255,10 +317,24 @@ class MonitorApplicationGUI:
                 display_name = self._get_profile_display_names().get(profile_id, profile_id)
                 self.config.set_profile(profile_id, display_name)
                 logger.info("Profile switched to: %s", profile_id)
+                self.gui.update_menu(
+                    inputs=self._get_input_display_names(),
+                    profiles=self._get_profile_display_names(),
+                    current_input=self.config.get().selected_input_id,
+                    current_profile=self.config.get().selected_profile_id,
+                    monitors=self._get_monitor_display_names(),
+                    current_monitor=self.config.get().monitor_model,
+                    shortcuts=self._get_shortcuts_dict(),
+                )
             else:
                 logger.warning("Failed to switch profile to %s", profile_id)
+                self.gui.show_error(
+                    "Profile switch failed",
+                    f"The monitor rejected the request to switch to profile '{profile_id}'.",
+                )
         except Exception as e:
             logger.error("Error switching profile: %s", e)
+            self.gui.show_error("Profile switch failed", f"An error occurred while switching profile:\n{e}")
 
     def _on_settings_changed(self, settings: dict) -> None:
         """

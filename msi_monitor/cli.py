@@ -90,9 +90,15 @@ def main() -> int:
 
             elif args.command == "status":
                 with monitor:
+                    # NOTE: the MSI protocol has no working "query current input"
+                    # command — it returns the same fixed response regardless of
+                    # the active input (confirmed via hardware testing), so this
+                    # only proves the device is reachable, not which input/profile
+                    # is currently active.
                     response = monitor.get_current_input()
                     if response:
-                        print(f"Status: {response}")
+                        print(f"Monitor is reachable (raw diagnostic response: {response})")
+                        print("Note: this protocol cannot report the actual active input/profile.")
                     else:
                         print("No response from monitor")
 

@@ -33,10 +33,17 @@ class ShortcutConfig:
 class ApplicationConfig:
     """Main application configuration."""
     monitor_model: str = "msi_mpg_341cqr"  # Registry id (see msi_monitor/monitors/*.json), persists across restarts
-    selected_input_name: str = "DisplayPort"  # User-friendly name
-    selected_input_id: str = "dp"             # Internal ID
-    selected_profile_name: str = "Eco"        # User-friendly name
-    selected_profile_id: str = "eco"          # Internal ID
+    # NOTE: the MSI protocol has no reliable "query current input/profile" command
+    # (the monitor echoes the same fixed response regardless of the active input —
+    # confirmed by capture analysis), so we cannot know the monitor's real state on
+    # first launch or if it was changed via the physical OSD/remote. Defaulting to
+    # "Unknown" instead of guessing a specific input (e.g. "DisplayPort") avoids
+    # showing the user information that may be flatly wrong. The values below are
+    # only updated when the app itself successfully sends a switch command.
+    selected_input_name: Optional[str] = None   # User-friendly name; None = unknown
+    selected_input_id: Optional[str] = None     # Internal ID; None = unknown
+    selected_profile_name: Optional[str] = None  # User-friendly name; None = unknown
+    selected_profile_id: Optional[str] = None    # Internal ID; None = unknown
     autostart: bool = False
     minimize_to_tray: bool = True
     confirm_on_quit: bool = True
