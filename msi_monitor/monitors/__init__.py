@@ -5,10 +5,11 @@ Each monitor model implements the IMonitor interface with model-specific protoco
 """
 
 import logging
-from typing import Optional
+from typing import Dict, Optional, Type
 
 from msi_monitor.core import HIDAPIDevice, HIDDeviceError
 from msi_monitor.core.monitor import IMonitor, MonitorInfo, InputSource, Profile
+from msi_monitor.core.registry import MonitorRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -24,16 +25,22 @@ class MSIMPEG341CQR(IMonitor):
     Format:   [ReportID=0x01][ASCII_CMD][0x0D terminator][0x00 padding to 64 bytes]
     
     Reverse-engineered via Wireshark capture of Windows MSI Gaming Intelligence software.
+
+    Metadata (model name, inputs, profiles, USB ids) is NOT hardcoded here — it is
+    loaded from msi_monitor/monitors/msi_mpg_341cqr.json via MonitorRegistry. This
+    keeps hardware description and protocol implementation independent, per the
+    "monitor info should be independent of the application" requirement: a
+    contributor can update supported inputs/profiles by editing the JSON file alone.
     """
 
-    VENDOR_ID = 0x1462
-    PRODUCT_ID = 0x3fa4
+    REGISTRY_ID = "msi_mpg_341cqr"
     INTERFACE = 0
     REPORT_ID = 0x01
     REPORT_LEN = 64
     TERMINATOR = b'\x0d'
 
-    # Input source commands (byte[5] encodes the source value)
+    # Input source commands (byte[5] encodes the source value).
+    # These are protocol-specific and therefore stay in code, not JSON.
     _INPUTS = {
         "hdmi1": b'5800110',
         "hdmi2": b'5800120',
@@ -46,31 +53,43 @@ class MSIMPEG341CQR(IMonitor):
     _CMD_QUERY_STATUS = b'5800150'
     _CMD_NEXT_PROFILE = b'5800190'
 
-    def __init__(self):
-        """Initialize the monitor interface."""
-        self._device = HIDAPIDevice(self.VENDOR_ID, self.PRODUCT_ID, self.INTERFACE)
-        self._info = MonitorInfo(
-            model_name="MSI MPG 341CQR QD-OLED X36",
-            vendor_id=self.VENDOR_ID,
-            product_id=self.PRODUCT_ID,
-            description="Ultra-wide QD-OLED gaming monitor",
-            inputs=[
-                InputSource("hdmi1", "HDMI 1"),
-                InputSource("hdmi2", "HDMI 2"),
-                InputSource("dp", "DisplayPort"),
-                InputSource("usb_c", "USB-C"),
-            ],
-            profiles=[
-                Profile("eco", "Eco"),
-                Profile("fps", "FPS"),
-                Profile("racing", "Racing"),
-                Profile("rpg", "RPG"),
-                Profile("srgb", "sRGB"),
-                Profile("movie", "Movie"),
-            ],
-        )
+    def __init__(self, info: Optional[MonitorInfo] = None):
+        """
+        Initialize the monitor interface.
+
+        Args:
+            info: MonitorInfo to use (normally supplied by MonitorRegistry, which
+                  loads it from msi_mpg_341cqr.json). Falls back to a minimal
+                  built-in definition if the registry entry is unavailable, so the
+                  class still works standalone (e.g. in unit tests).
+        """
+        if info is None:
+            registry = MonitorRegistry()
+            info = registry.get(self.REGISTRY_ID)
+        if info is None:
+            # Last-resort fallback so this class never crashes if the JSON file
+            # is missing/corrupt; keeps the app usable in a degraded state.
+            logger.warning(
+                "Monitor definition '%s' not found in registry; using built-in fallback",
+                self.REGISTRY_ID,
+            )
+            info = MonitorInfo(
+                model_name="MSI MPG 341CQR QD-OLED X36",
+                vendor_id=0x1462,
+                product_id=0x3fa4,
+                description="Ultra-wide QD-OLED gaming monitor",
+                inputs=[InputSource(k, k.upper()) for k in self._INPUTS],
+                profiles=[Profile("eco", "Eco")],
+            )
+
+        self._info = info
+        self._device = HIDAPIDevice(info.vendor_id, info.product_id, self.INTERFACE)
         self._current_input = None
         self._current_profile = None
+        # Profile order used to compute how many "next profile" cycles are
+        # needed to reach a specific target (the protocol only exposes cycling,
+        # not direct selection — see set_profile()).
+        self._profile_order = [p.id for p in self._info.profiles]
 
     @property
     def info(self) -> MonitorInfo:
@@ -174,20 +193,56 @@ class MSIMPEG341CQR(IMonitor):
 
     def get_current_profile(self) -> Optional[str]:
         """Get the current profile ID."""
-        # TODO: Implement profile query via protocol analysis
         return self._current_profile
 
     def set_profile(self, profile_id: str) -> bool:
-        """Set a specific profile."""
-        # TODO: Implement profile setting via protocol analysis
-        logger.warning("Profile setting not yet implemented for this monitor")
-        return False
+        """
+        Set a specific profile.
+
+        The reverse-engineered protocol only exposes a "next profile" command
+        (there is no direct "set profile N" command in the capture). We emulate
+        direct selection by cycling forward the minimum number of steps needed
+        to reach the target profile from the last known one. This is best-effort:
+        if the monitor's actual current profile drifts from our tracked state
+        (e.g. changed via the physical OSD), the first selection may land on the
+        wrong profile; subsequent selections self-correct once `next_profile()`
+        keeps our tracked index in sync.
+        """
+        profile_id = profile_id.lower().strip()
+        if profile_id not in self._profile_order:
+            logger.error(
+                "Unknown profile '%s'. Valid: %s", profile_id, self._profile_order
+            )
+            return False
+
+        if self._current_profile is None:
+            # Unknown starting point: assume the monitor is at the first profile.
+            self._current_profile = self._profile_order[0]
+
+        current_index = self._profile_order.index(self._current_profile)
+        target_index = self._profile_order.index(profile_id)
+        steps = (target_index - current_index) % len(self._profile_order)
+
+        if steps == 0:
+            logger.debug("Profile '%s' already selected", profile_id)
+            return True
+
+        for _ in range(steps):
+            if not self.next_profile():
+                return False
+        return True
 
     def next_profile(self) -> bool:
         """Cycle to the next profile."""
         try:
             response = self._send_command(self._CMD_NEXT_PROFILE)
-            logger.info("Cycled to next profile")
+            if self._profile_order:
+                if self._current_profile is None:
+                    self._current_profile = self._profile_order[0]
+                else:
+                    idx = self._profile_order.index(self._current_profile)
+                    self._current_profile = self._profile_order[(idx + 1) % len(self._profile_order)]
+            logger.info("Cycled to next profile (now: %s)", self._current_profile)
             return True
         except HIDDeviceError as e:
             logger.error("Failed to cycle profile: %s", e)
@@ -198,7 +253,47 @@ class MSIMPEG341CQR(IMonitor):
         feature_map = {
             "input_switching": True,
             "profile_cycling": True,
-            "profile_selection": False,  # Not yet reverse-engineered
+            "profile_selection": True,  # Emulated via cycling, see set_profile()
             "status_query": True,
         }
         return feature_map.get(feature, False)
+
+
+# ==============================================================================
+#  Monitor factory — maps registry ids to concrete IMonitor implementations
+# ==============================================================================
+
+# Only monitors with a reverse-engineered protocol have a concrete class here.
+# Community-contributed monitor JSON files (req #11) are still readable via the
+# registry for display purposes even before someone implements their protocol.
+_MONITOR_CLASSES: Dict[str, Type[IMonitor]] = {
+    "msi_mpg_341cqr": MSIMPEG341CQR,
+}
+
+
+def create_monitor(model_id: str, registry: Optional[MonitorRegistry] = None) -> Optional[IMonitor]:
+    """
+    Instantiate the IMonitor implementation for a given registry model id.
+
+    Args:
+        model_id: Registry id, e.g. "msi_mpg_341cqr" (see msi_monitor/monitors/*.json)
+        registry: Optional pre-built MonitorRegistry (avoids re-scanning disk)
+
+    Returns:
+        An IMonitor instance, or None if no protocol implementation exists yet
+        for that model (e.g. a user just added metadata but no control code).
+    """
+    registry = registry or MonitorRegistry()
+    info = registry.get(model_id)
+    monitor_cls = _MONITOR_CLASSES.get(model_id)
+
+    if monitor_cls is None:
+        logger.warning(
+            "No protocol implementation registered for monitor '%s'. "
+            "Its metadata can be displayed but commands cannot be sent yet.",
+            model_id,
+        )
+        return None
+
+    return monitor_cls(info) if info is not None else monitor_cls()
+

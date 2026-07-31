@@ -24,7 +24,10 @@ class TestApplicationConfig:
     def test_create_default_config(self):
         """Test creating config with defaults."""
         config = ApplicationConfig()
-        assert config.monitor_model == "MSI MPG 341CQR"
+        # monitor_model stores the MonitorRegistry id (see msi_monitor/monitors/*.json),
+        # not the human-readable model name — that keeps config.json stable even if a
+        # monitor's display name is edited later.
+        assert config.monitor_model == "msi_mpg_341cqr"
         assert config.minimize_to_tray is True
         assert config.confirm_on_quit is True
 

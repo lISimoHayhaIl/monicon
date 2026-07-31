@@ -39,6 +39,11 @@ monicon = "msi_monitor.cli:main"
 where = ["."]
 include = ["msi_monitor*"]
 
+[tool.setuptools.package-data]
+# Ship the JSON monitor definitions and the tray/app icon assets inside the wheel.
+"msi_monitor.monitors" = ["*.json"]
+"msi_monitor.gui" = ["assets/*.svg", "assets/*.png"]
+
 [tool.black]
 line-length = 100
 target-version = ['py39', 'py310', 'py311']

@@ -17,6 +17,7 @@ BuildRequires:  python3-installer
 Requires:       python3 >= 3.9
 Requires:       python3-pynput >= 1.7
 Requires:       python3-pyqt6 >= 6.0
+Requires:       python3-hid
 Requires:       hidapi
 
 # Old package name
@@ -55,12 +56,23 @@ Terminal=false
 StartupNotify=false
 EOF
 
+# Install the tray/launcher icon into the hicolor theme so desktop
+# environments can resolve "Icon=monicon" from the .desktop file above.
+for size in 16 22 24 32 48 64 128 256; do
+    install -Dm644 "msi_monitor/gui/assets/monicon-${size}.png" \
+        "%{buildroot}%{_datadir}/icons/hicolor/${size}x${size}/apps/monicon.png"
+done
+install -Dm644 msi_monitor/gui/assets/monicon.svg \
+    "%{buildroot}%{_datadir}/icons/hicolor/scalable/apps/monicon.svg"
+
 %files -f %{pyproject_files}
 %license LICENSE
 %doc README.md
 %{_bindir}/monicon
 %{_udevrulesdir}/90-msi-monitor.rules
 %{_datadir}/applications/monicon.desktop
+%{_datadir}/icons/hicolor/*/apps/monicon.png
+%{_datadir}/icons/hicolor/scalable/apps/monicon.svg
 
 %post
 # Reload udev rules

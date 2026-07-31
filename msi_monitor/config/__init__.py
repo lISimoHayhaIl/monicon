@@ -32,7 +32,7 @@ class ShortcutConfig:
 @dataclass
 class ApplicationConfig:
     """Main application configuration."""
-    monitor_model: str = "MSI MPG 341CQR"
+    monitor_model: str = "msi_mpg_341cqr"  # Registry id (see msi_monitor/monitors/*.json), persists across restarts
     selected_input_name: str = "DisplayPort"  # User-friendly name
     selected_input_id: str = "dp"             # Internal ID
     selected_profile_name: str = "Eco"        # User-friendly name

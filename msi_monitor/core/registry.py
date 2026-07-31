@@ -41,31 +41,24 @@ class MonitorRegistry:
         self._load_user_monitors()
 
     def _load_builtin_monitors(self) -> None:
-        """Load built-in monitor definitions."""
-        # Manually register built-in monitors
-        # This is the MSI MPG 341CQR we support
-        msi_mpg_341cqr = MonitorInfo(
-            model_name="MSI MPG 341CQR QD-OLED X36",
-            vendor_id=0x1462,
-            product_id=0x3fa4,
-            description="Ultra-wide QD-OLED gaming monitor (34 inch, 3440x1440)",
-            inputs=[
-                InputSource("hdmi1", "HDMI 1", "HDMI input 1"),
-                InputSource("hdmi2", "HDMI 2", "HDMI input 2"),
-                InputSource("dp", "DisplayPort", "DisplayPort input"),
-                InputSource("usb_c", "USB-C", "USB-C input"),
-            ],
-            profiles=[
-                Profile("eco", "Eco", "Power-saving profile"),
-                Profile("fps", "FPS", "High-performance gaming"),
-                Profile("racing", "Racing", "Racing game optimization"),
-                Profile("rpg", "RPG", "RPG/story game optimization"),
-                Profile("srgb", "sRGB", "Color-accurate sRGB mode"),
-                Profile("movie", "Movie", "Movie/entertainment mode"),
-            ],
-        )
-        self.register("msi_mpg_341cqr", msi_mpg_341cqr)
-        logger.debug("Registered built-in monitor: MSI MPG 341CQR")
+        """
+        Load built-in monitor definitions from msi_monitor/monitors/*.json.
+
+        Per requirement #11, monitor metadata lives in its own JSON files
+        (not hardcoded in Python) so contributors can add support for new
+        monitors purely by dropping a new JSON file in this folder and
+        submitting a PR — no core code changes required.
+        """
+        builtin_dir = Path(__file__).resolve().parent.parent / "monitors"
+        if not builtin_dir.exists():
+            logger.warning("Built-in monitors directory not found: %s", builtin_dir)
+            return
+
+        for json_file in sorted(builtin_dir.glob("*.json")):
+            try:
+                self._load_monitor_file(json_file)
+            except Exception as e:
+                logger.error("Failed to load built-in monitor from %s: %s", json_file, e)
 
     def _load_user_monitors(self) -> None:
         """Load user-defined monitor definitions from ~/.local/share/monicon/monitors/."""
@@ -106,12 +99,26 @@ class MonitorRegistry:
         except Exception as e:
             logger.error("Error loading monitor definition %s: %s", file_path, e)
 
+    @staticmethod
+    def _to_int(value, default: int = 0) -> int:
+        """
+        Coerce a USB id field to int, accepting either a JSON number or a
+        "0x1462"-style hex string (auto-detected via base 0).
+        """
+        if value is None:
+            return default
+        if isinstance(value, int):
+            return value
+        if isinstance(value, str):
+            return int(value, 0)  # base=0 auto-detects "0x..." vs plain decimal
+        return default
+
     def _parse_monitor_data(self, data: Dict, file_path: Path) -> None:
         """Parse monitor definition from data dict."""
         model_id = data.get('id', file_path.stem)
         model_name = data.get('name', 'Unknown Monitor')
-        vendor_id = int(data.get('vendor_id', 0), 16 if isinstance(data.get('vendor_id'), str) else 10)
-        product_id = int(data.get('product_id', 0), 16 if isinstance(data.get('product_id'), str) else 10)
+        vendor_id = self._to_int(data.get('vendor_id'))
+        product_id = self._to_int(data.get('product_id'))
         description = data.get('description', '')
 
         # Parse inputs

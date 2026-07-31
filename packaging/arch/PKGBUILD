@@ -12,6 +12,7 @@ depends=(
     'python>=3.9'
     'python-pynput>=1.7'
     'python-pyqt6>=6.0'
+    'python-hid'
     'hidapi'
 )
 makedepends=(
@@ -60,4 +61,13 @@ Categories=Utility;Hardware;
 Terminal=false
 StartupNotify=false
 EOF
+
+    # Install the tray/launcher icon into the hicolor theme so desktop
+    # environments can resolve "Icon=monicon" from the .desktop file above.
+    for size in 16 22 24 32 48 64 128 256; do
+        install -Dm644 "msi_monitor/gui/assets/monicon-${size}.png" \
+            "${pkgdir}/usr/share/icons/hicolor/${size}x${size}/apps/monicon.png"
+    done
+    install -Dm644 "msi_monitor/gui/assets/monicon.svg" \
+        "${pkgdir}/usr/share/icons/hicolor/scalable/apps/monicon.svg"
 }

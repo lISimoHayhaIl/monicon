@@ -14,6 +14,7 @@ BuildRequires:  python3-wheel
 Requires:       python3 >= 3.9
 Requires:       python3-pynput >= 1.7
 Requires:       python3-PyQt6 >= 6.0
+Requires:       python3-pip
 Requires:       libhidapi0
 
 %description
@@ -56,7 +57,24 @@ Terminal=false
 StartupNotify=false
 EOF
 
+# Install the tray/launcher icon into the hicolor theme so desktop
+# environments can resolve "Icon=monicon" from the .desktop file above.
+for size in 16 22 24 32 48 64 128 256; do
+    install -Dm644 "msi_monitor/gui/assets/monicon-${size}.png" \
+        "%{buildroot}%{_datadir}/icons/hicolor/${size}x${size}/apps/monicon.png"
+done
+install -Dm644 msi_monitor/gui/assets/monicon.svg \
+    "%{buildroot}%{_datadir}/icons/hicolor/scalable/apps/monicon.svg"
+
 %post
+# openSUSE does not ship an official "python3-hid" (pyhidapi) package at the
+# time of writing, unlike Arch/Fedora/Debian. Install it from PyPI into the
+# system site-packages so `import hid` works out of the box after install.
+# This is a pure-Python ctypes wrapper around the already-installed
+# libhidapi0, so no compiler/build toolchain is required.
+python3 -m pip install --quiet 'hid>=1.0.6' || \
+    echo "Warning: failed to install the 'hid' Python package automatically. Run: pip install hid" >&2
+
 # Reload udev rules
 udevadm control --reload
 udevadm trigger
@@ -67,6 +85,8 @@ udevadm trigger
 %{_bindir}/monicon
 %{_udevrulesdir}/90-msi-monitor.rules
 %{_datadir}/applications/monicon.desktop
+%{_datadir}/icons/hicolor/*/apps/monicon.png
+%{_datadir}/icons/hicolor/scalable/apps/monicon.svg
 %{python3_sitelib}/msi_monitor/
 %{python3_sitelib}/monicon-*.dist-info/
 

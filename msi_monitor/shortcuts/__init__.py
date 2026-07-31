@@ -94,6 +94,12 @@ class ShortcutManager:
                 self._shortcuts[shortcut].remove(callback)
                 logger.debug("Unregistered shortcut: %s", shortcut)
 
+    def clear(self) -> None:
+        """Remove all registered shortcut bindings (used when rebuilding shortcuts, e.g. after Settings changes)."""
+        with self._lock:
+            self._shortcuts.clear()
+            logger.debug("Cleared all shortcut bindings")
+
     def start(self) -> None:
         """Start listening for keyboard events."""
         if self._running:
@@ -110,10 +116,25 @@ class ShortcutManager:
         logger.info("Shortcut listener started")
 
     def stop(self) -> None:
-        """Stop listening for keyboard events."""
+        """
+        Stop listening for keyboard events.
+
+        On the X11 backend, pynput's Listener.stop() can raise AttributeError
+        if the listener thread hasn't finished initializing its internal
+        display-record context yet (e.g. stop() called immediately after
+        start(), such as when the user quits right after launching the app).
+        We swallow that specific race harmlessly since the underlying thread
+        is a daemon thread that will exit with the process regardless.
+        """
         if self._listener:
-            self._listener.stop()
-            self._listener = None
+            try:
+                self._listener.stop()
+            except AttributeError as e:
+                logger.debug("Listener stop race (harmless, thread is a daemon): %s", e)
+            except Exception as e:
+                logger.warning("Error stopping shortcut listener: %s", e)
+            finally:
+                self._listener = None
         self._running = False
         self._pressed_keys.clear()
         logger.info("Shortcut listener stopped")
@@ -169,12 +190,19 @@ class ShortcutManager:
         if shortcut.key not in self._pressed_keys:
             return False
 
-        # Check modifiers
+        # Check modifiers.
+        #
+        # NOTE: pynput's X11 backend reports the *left* variant of ctrl/alt/shift
+        # using the bare name ("ctrl", "alt", "shift") rather than an "_l" suffixed
+        # name — only the *right* variant gets an explicit "_r" suffix (e.g. "ctrl_r").
+        # The bare names must therefore be included alongside the "_l"/"_r" forms,
+        # otherwise the far more common left-hand modifier keys never match and
+        # every default shortcut (Ctrl+Super+...) silently fails to trigger.
         modifier_map = {
-            "ctrl": {"ctrl_l", "ctrl_r"},
-            "shift": {"shift_l", "shift_r"},
-            "alt": {"alt_l", "alt_r"},
-            "super": {"cmd", "cmd_l", "cmd_r"},  # macOS style
+            "ctrl": {"ctrl", "ctrl_l", "ctrl_r"},
+            "shift": {"shift", "shift_l", "shift_r"},
+            "alt": {"alt", "alt_l", "alt_r", "alt_gr"},
+            "super": {"cmd", "cmd_l", "cmd_r"},  # pynput reuses the macOS "cmd" name for the Super/Windows key
         }
 
         for modifier in shortcut.modifiers:

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Monicon application/tray icon: a stylised widescreen monitor with an
+     input-select arrow, using a flat, modern palette that reads clearly
+     at small (16-24px) tray sizes as well as full desktop-icon sizes. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="screen" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4F8CFF"/>
+      <stop offset="1" stop-color="#1F5FE0"/>
+    </linearGradient>
+  </defs>
+  <!-- Monitor bezel -->
+  <rect x="4" y="8" width="56" height="34" rx="5" fill="#20242C"/>
+  <!-- Screen -->
+  <rect x="8" y="12" width="48" height="26" rx="2" fill="url(#screen)"/>
+  <!-- Stand -->
+  <rect x="27" y="42" width="10" height="8" rx="1.5" fill="#20242C"/>
+  <rect x="18" y="50" width="28" height="4" rx="2" fill="#20242C"/>
+  <!-- Input switch glyph (two arrows) on screen -->
+  <path d="M20 25 l7 -6 v4 h9 v4 h-9 v4 z" fill="#FFFFFF"/>
+  <path d="M44 25 l-7 6 v-4 h-9 v-4 h9 v-4 z" fill="#B9D4FF"/>
+</svg>

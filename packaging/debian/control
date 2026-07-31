@@ -9,7 +9,7 @@ Vcs-Browser: https://github.com/monicon-dev/monicon
 
 Package: monicon
 Architecture: all
-Depends: ${misc:Depends}, ${python3:Depends}, python3 (>= 3.9), python3-pynput (>= 1.7), python3-pyqt6 (>= 6.0), libhidapi-hidraw0
+Depends: ${misc:Depends}, ${python3:Depends}, python3 (>= 3.9), python3-pynput (>= 1.7), python3-pyqt6 (>= 6.0), python3-hid, libhidapi-hidraw0
 Suggests: python3-pyyaml
 Replaces: msi-monitor-ctl (<< 0.2.0)
 Description: Modern system tray application for MSI monitor control on Linux
