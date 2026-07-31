@@ -45,7 +45,13 @@ class MonitorApplicationGUI:
 
     def startup(self) -> None:
         """Start the application."""
-        logger.info("Starting Monicon GUI")
+        # Logged unconditionally (not just under -v) so every run's log output
+        # unambiguously identifies which build is executing — critical for
+        # telling apart a freshly-restarted process from a stale one left
+        # running from before a fix.
+        from msi_monitor import __version__
+        import os
+        logger.warning("Starting Monicon GUI (version %s, pid %s)", __version__, os.getpid())
 
         try:
             # Detect and connect to monitor

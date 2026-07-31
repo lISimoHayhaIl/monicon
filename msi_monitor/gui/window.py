@@ -240,7 +240,13 @@ class MoniconicoTrayWindow:
         Qt = self._QtCore['Qt']
 
         self._main_window = QMainWindow()
-        self._main_window.setWindowTitle(self.app_name)
+        # Version is embedded directly in the window title (not just About) so
+        # the user can immediately tell, at a glance, whether a running window
+        # is a freshly-restarted process or a stale one left over from before
+        # a fix was applied — this ambiguity previously made bugfixes look
+        # like they "didn't work" when actually an old process was still
+        # running in the tray.
+        self._main_window.setWindowTitle(f"{self.app_name} v{__version__}")
         self._main_window.setWindowIcon(self._icon)
         self._main_window.resize(420, 320)
         self._main_window.setStyleSheet(_LIGHT_QSS)
@@ -254,7 +260,7 @@ class MoniconicoTrayWindow:
 
         title = QLabel(self.app_name)
         title.setObjectName("Title")
-        subtitle = QLabel("MSI monitor input & profile control")
+        subtitle = QLabel(f"MSI monitor input & profile control  ·  v{__version__}")
         subtitle.setObjectName("Subtitle")
         layout.addWidget(title)
         layout.addWidget(subtitle)
@@ -318,7 +324,7 @@ class MoniconicoTrayWindow:
     def _build_tray_icon(self) -> None:
         """Create the system tray icon and its menu."""
         self._tray_icon = self._QtWidgets['QSystemTrayIcon'](self._icon, self._main_window)
-        self._tray_icon.setToolTip(self.app_name)
+        self._tray_icon.setToolTip(f"{self.app_name} v{__version__}")
         self._setup_tray_menu()
         self._tray_icon.activated.connect(self._on_tray_activated)
         self._tray_icon.show()
