@@ -1,4 +1,4 @@
-monicon (0.2.0-1) unstable; urgency=medium
+monicon (0.1.0-1) unstable; urgency=medium
 
   * Major refactor with SOLID principles
   * New system tray GUI based on PyQt6
@@ -7,10 +7,12 @@ monicon (0.2.0-1) unstable; urgency=medium
   * Configuration management using XDG directories
   * Cross-desktop environment compatibility
   * Improved architecture for future monitor support
+  * Added About dialog with version information
+  * Fixed misleading "current input" display and silent switch failures
 
  -- Monicon Contributors <monicon@example.com>  Thu, 30 Jul 2024 00:00:00 +0000
 
-monicon (0.1.0-1) unstable; urgency=medium
+monicon (0.0.1-1) unstable; urgency=medium
 
   * Initial release
   * Command-line interface for MSI monitor control

@@ -5,6 +5,6 @@ A modern, SOLID-principle-based system tray application for controlling MSI gami
 on Linux with support for input switching, profile management, and global keybindings.
 """
 
-__version__ = "0.2.0"
+__version__ = "0.1.0"
 __author__ = "Monicon Contributors"
 __license__ = "GPL-3.0-or-later"

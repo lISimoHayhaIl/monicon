@@ -15,6 +15,8 @@ import sys
 from pathlib import Path
 from typing import Optional, Callable, Dict, List, Tuple
 
+from msi_monitor import __version__, __license__
+
 logger = logging.getLogger(__name__)
 
 # Directory containing the bundled icon assets (see msi_monitor/gui/assets/).
@@ -295,10 +297,14 @@ class MoniconicoTrayWindow:
         settings_btn = QPushButton("Settings")
         settings_btn.setObjectName("Secondary")
         settings_btn.clicked.connect(self._show_settings)
+        about_btn = QPushButton("About")
+        about_btn.setObjectName("Secondary")
+        about_btn.clicked.connect(self._show_about)
         minimize_btn = QPushButton("Minimize to tray")
         minimize_btn.setObjectName("Secondary")
         minimize_btn.clicked.connect(lambda: self._main_window.hide())
         bottom_row.addWidget(settings_btn)
+        bottom_row.addWidget(about_btn)
         bottom_row.addStretch(1)
         bottom_row.addWidget(minimize_btn)
         layout.addLayout(bottom_row)
@@ -375,6 +381,10 @@ class MoniconicoTrayWindow:
         settings_action = QAction("Settings...", menu)
         settings_action.triggered.connect(self._show_settings)
         menu.addAction(settings_action)
+
+        about_action = QAction("About Monicon", menu)
+        about_action.triggered.connect(self._show_about)
+        menu.addAction(about_action)
 
         # Requirement #10: left-click menu also offers restore-then-quit.
         restore_quit_action = QAction("Restore Window && Quit", menu)
@@ -465,6 +475,11 @@ class MoniconicoTrayWindow:
             self._main_window.showNormal()
             self._main_window.raise_()
             self._main_window.activateWindow()
+
+    def show_and_raise(self) -> None:
+        """Public wrapper for _show_window(), used by SingleInstanceGuard when
+        a second launch attempt asks the running instance to come to front."""
+        self._show_window()
 
     def _on_window_close(self, event) -> None:
         """Handle window close event - minimize to tray instead of exiting (requirement #8)."""
@@ -569,6 +584,28 @@ class MoniconicoTrayWindow:
             result = self._settings_dialog.result_data()
             if self._on_settings_changed:
                 self._on_settings_changed(result)
+
+    def _show_about(self) -> None:
+        """
+        Show the About dialog with the application name, version, and license.
+
+        Uses QMessageBox.about() so it automatically picks up the app icon
+        and gets a native "About <AppName>" title on most desktop environments.
+        """
+        QMessageBox = self._QtWidgets['QMessageBox']
+        monitor_name = self._monitors.get(self._current_monitor, "None")
+        QMessageBox.about(
+            self._main_window,
+            f"About {self.app_name}",
+            f"<h3>{self.app_name}</h3>"
+            f"<p>Version {__version__}</p>"
+            f"<p>A modern system tray application for controlling MSI gaming "
+            f"monitors on Linux — input switching, settings profiles, and "
+            f"global keybindings.</p>"
+            f"<p>Active monitor: {monitor_name}</p>"
+            f"<p>License: {__license__}</p>"
+            f"<p><a href=\"https://github.com/lISimoHayhaIl/Monicon\">Project homepage</a></p>",
+        )
 
     # ------------------------------------------------------------------
     #  Callback registration

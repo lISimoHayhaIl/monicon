@@ -404,7 +404,27 @@ class MonitorApplicationGUI:
         self.shutdown()
 
     def run(self) -> int:
-        """Run the application."""
+        """
+        Run the application.
+
+        Enforces a single running instance first: if Monicon is already
+        running in the tray, a second launch would silently fight the first
+        for the same HID device (hidapi allows multiple opens) and the user
+        would see clicks in the *new* window do nothing while the *old*,
+        already-running tray icon keeps working — which looks exactly like
+        "switch does nothing". Instead, a second launch just notifies the
+        first instance to show its window, then exits immediately.
+        """
+        from msi_monitor.gui.single_instance import SingleInstanceGuard
+
+        guard = SingleInstanceGuard("monicon")
+        if not guard.try_acquire(on_second_instance=lambda: self.gui.show_and_raise()):
+            print(
+                "Monicon is already running (check your system tray). "
+                "Bringing the existing window to the front."
+            )
+            return 0
+
         try:
             self.startup()
             return self.gui.run()
@@ -416,6 +436,7 @@ class MonitorApplicationGUI:
             return 1
         finally:
             self.shutdown()
+            guard.release()
 
     @property
     def is_running(self) -> bool:

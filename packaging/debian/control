@@ -3,15 +3,15 @@ Priority: optional
 Maintainer: Monicon Contributors <monicon@example.com>
 Build-Depends: debhelper-compat (= 13), python3-all, python3-setuptools, python3-wheel, python3-build, python3-installer
 Standards-Version: 4.6.0
-Homepage: https://github.com/monicon-dev/monicon
-Vcs-Git: https://github.com/monicon-dev/monicon.git
-Vcs-Browser: https://github.com/monicon-dev/monicon
+Homepage: https://github.com/lISimoHayhaIl/Monicon
+Vcs-Git: https://github.com/lISimoHayhaIl/Monicon.git
+Vcs-Browser: https://github.com/lISimoHayhaIl/Monicon
 
 Package: monicon
 Architecture: all
 Depends: ${misc:Depends}, ${python3:Depends}, python3 (>= 3.9), python3-pynput (>= 1.7), python3-pyqt6 (>= 6.0), python3-hid, libhidapi-hidraw0
 Suggests: python3-pyyaml
-Replaces: msi-monitor-ctl (<< 0.2.0)
+Replaces: msi-monitor-ctl (<< 0.1.0)
 Description: Modern system tray application for MSI monitor control on Linux
  Monicon provides a clean, modern interface for controlling MSI gaming monitors
  on Linux, featuring:

@@ -32,6 +32,15 @@ class ShortcutConfig:
 @dataclass
 class ApplicationConfig:
     """Main application configuration."""
+    # Bumped whenever a stored field's *meaning* changes in a way that makes
+    # old persisted values misleading (see _load()'s migration step below).
+    # v1 (implicit, no field) -> v2: selected_input_id/selected_profile_id
+    # used to default to a guessed value ("dp"/first profile) written out to
+    # disk by earlier builds. Since the monitor protocol cannot actually be
+    # queried for its current input, that guess gets loaded back on every
+    # subsequent launch and displayed as if it were verified fact. v2 treats
+    # a pre-v2 file as carrying an unverified guess and resets it to unknown.
+    config_schema_version: int = 2
     monitor_model: str = "msi_mpg_341cqr"  # Registry id (see msi_monitor/monitors/*.json), persists across restarts
     # NOTE: the MSI protocol has no reliable "query current input/profile" command
     # (the monitor echoes the same fixed response regardless of the active input —
@@ -70,6 +79,10 @@ class ApplicationConfig:
             for action, cfg in data['shortcuts'].items():
                 shortcuts[action] = ShortcutConfig.from_dict(cfg)
         data['shortcuts'] = shortcuts
+        # Unknown/legacy keys from an older or newer schema shouldn't crash
+        # loading; drop anything the dataclass doesn't declare.
+        valid_fields = {f for f in cls.__dataclass_fields__}
+        data = {k: v for k, v in data.items() if k in valid_fields}
         return cls(**data)
 
 
@@ -97,13 +110,34 @@ class ConfigManager:
         return xdg_config
 
     def _load(self) -> None:
-        """Load config from file, use defaults if not found."""
+        """Load config from file, use defaults if not found.
+
+        Also migrates configs written by older Monicon versions (schema
+        version < 2) that persisted a *guessed* current input/profile (e.g.
+        "dp") as if it were a verified reading. Since the monitor's protocol
+        cannot actually report its active input, that guess is discarded on
+        migration so the UI shows "Unknown" instead of repeating a stale,
+        possibly-wrong value forever.
+        """
         if self.config_file.exists():
             try:
                 with open(self.config_file, 'r') as f:
                     data = json.load(f)
-                    self._config = ApplicationConfig.from_dict(data)
-                    logger.info("Loaded config from %s", self.config_file)
+                stored_version = data.get('config_schema_version', 1)
+                self._config = ApplicationConfig.from_dict(data)
+                logger.info("Loaded config from %s", self.config_file)
+                if stored_version < 2:
+                    logger.info(
+                        "Migrating config from schema v%s to v%s: clearing "
+                        "unverified guessed input/profile state",
+                        stored_version, ApplicationConfig().config_schema_version,
+                    )
+                    self._config.selected_input_id = None
+                    self._config.selected_input_name = None
+                    self._config.selected_profile_id = None
+                    self._config.selected_profile_name = None
+                    self._config.config_schema_version = ApplicationConfig().config_schema_version
+                    self.save()
             except Exception as e:
                 logger.warning("Failed to load config: %s. Using defaults.", e)
                 self._config = ApplicationConfig()

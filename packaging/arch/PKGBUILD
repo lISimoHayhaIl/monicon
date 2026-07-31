@@ -1,12 +1,12 @@
 # Maintainer: Your Name <your.email@example.com>
-# Contributor: Monicon Project <https://github.com/monicon-dev/monicon>
+# Contributor: Monicon Project <https://github.com/lISimoHayhaIl/Monicon>
 
 pkgname=monicon
-pkgver=0.2.0
+pkgver=0.1.0
 pkgrel=1
 pkgdesc="Modern system tray application for controlling MSI gaming monitors on Linux"
 arch=('x86_64' 'i686')
-url="https://github.com/monicon-dev/monicon"
+url="https://github.com/lISimoHayhaIl/Monicon"
 license=('GPL3')
 depends=(
     'python>=3.9'
@@ -27,7 +27,7 @@ optdepends=(
 provides=('monicon')
 conflicts=('msi-monitor-ctl')
 
-source=("git+https://github.com/monicon-dev/monicon.git#branch=feat/refactor-solid-tray-gui")
+source=("git+https://github.com/lISimoHayhaIl/Monicon.git#branch=feat/refactor-solid-tray-gui")
 sha256sums=('SKIP')
 
 pkgver() {

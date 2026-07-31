@@ -1,10 +1,10 @@
 Name:           monicon
-Version:        0.2.0
+Version:        0.1.0
 Release:        1%{?dist}
 Summary:        Modern system tray application for MSI monitor control on Linux
 
 License:        GPLv3+
-URL:            https://github.com/monicon-dev/monicon
+URL:            https://github.com/lISimoHayhaIl/Monicon
 Source0:        %{url}/archive/feat/refactor-solid-tray-gui.tar.gz
 
 BuildArch:      noarch

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "monicon"
-version = "0.2.0"
+version = "0.1.0"
 description = "Modern Linux system tray application for controlling MSI gaming monitors with global keybindings"
 readme = "README.md"
 license = { text = "GPL-3.0-or-later" }
@@ -29,8 +29,8 @@ dev = [
 ]
 
 [project.urls]
-Repository = "https://github.com/monicon-dev/monicon"
-Issues = "https://github.com/monicon-dev/monicon/issues"
+Repository = "https://github.com/lISimoHayhaIl/Monicon"
+Issues = "https://github.com/lISimoHayhaIl/Monicon/issues"
 
 [project.scripts]
 monicon = "msi_monitor.cli:main"
